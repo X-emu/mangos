@@ -188,6 +188,10 @@ void SpellCastTargets::Update(Unit* caster)
         ( m_unitTargetGUID == caster->GetObjectGuid() ? caster : ObjectAccessor::GetUnit(*caster, m_unitTargetGUID) ) :
     NULL;
 
+    if (m_unitTarget && m_unitTargetGUID != caster->GetObjectGuid() &&
+        !m_unitTarget->isVisibleForOrDetect(caster, caster, false))
+            m_unitTarget = NULL;
+
     m_itemTarget = NULL;
     if(caster->GetTypeId() == TYPEID_PLAYER)
     {
@@ -2850,6 +2854,13 @@ void Spell::cast(bool skipCheck)
                 AddTriggeredSpell(64380);                     // Shattering Throw
             break;
         }
+        case SPELLFAMILY_DEATHKNIGHT:
+        {
+            // Chains of Ice
+            if (m_spellInfo->Id == 45524)
+                AddTriggeredSpell(55095);                     // Frost Fever
+            break;
+        }
         default:
             break;
     }
@@ -5237,7 +5248,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                 // allow always ghost flight spells
                 if (m_caster->GetTypeId() == TYPEID_PLAYER && m_caster->isAlive())
                 {
-                    if (!((Player*)m_caster)->IsKnowHowFlyIn(m_caster->GetMapId(),zone))
+                    if (!((Player*)m_caster)->IsKnowHowFlyIn(m_caster->GetMapId(), zone, area))
                         return m_IsTriggeredSpell ? SPELL_FAILED_DONT_REPORT : SPELL_FAILED_NOT_HERE;
                 }
                 break;
@@ -6678,7 +6689,7 @@ void Spell::SelectMountByAreaAndSkill(Unit* target, uint32 spellId75, uint32 spe
         target->GetZoneAndAreaId(zone, area);
 
         SpellCastResult locRes= sSpellMgr.GetSpellAllowedInLocationError(pSpell, target->GetMapId(), zone, area, target->GetCharmerOrOwnerPlayerOrPlayerItself());
-        if (locRes != SPELL_CAST_OK || !((Player*)target)->IsKnowHowFlyIn(target->GetMapId(),zone))
+        if (locRes != SPELL_CAST_OK || !((Player*)target)->IsKnowHowFlyIn(target->GetMapId(), zone, area))
             target->CastSpell(target, spellId150, true);
         else if (spellIdSpecial > 0)
         {
@@ -6686,7 +6697,6 @@ void Spell::SelectMountByAreaAndSkill(Unit* target, uint32 spellId75, uint32 spe
             {
                 if (iter->second.state != PLAYERSPELL_REMOVED)
                 {
-                    bool changedSpeed = false;
                     SpellEntry const *spellInfo = sSpellStore.LookupEntry(iter->first);
                     for(int i = 0; i < MAX_EFFECT_INDEX; ++i)
                     {
@@ -6694,8 +6704,8 @@ void Spell::SelectMountByAreaAndSkill(Unit* target, uint32 spellId75, uint32 spe
                         {
                             int32 mountSpeed = spellInfo->CalculateSimpleValue(SpellEffectIndex(i));
 
-                            // speed higher than 300 replace it
-                            if (mountSpeed > 300)
+                            // speed higher than 280 replace it
+                            if (mountSpeed > 280)
                                 target->CastSpell(target, spellIdSpecial, true);
                             return;
                         }
